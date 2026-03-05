@@ -155,17 +155,20 @@ def _build_volume_mounts(group: RegisteredGroup, is_main: bool) -> list[VolumeMo
     )
 
     # Per-group agent-runner source
+    # Only mounted when the container/agent-runner/src/ directory exists.
+    # (Python agent runner: files are baked into the image; src/ is absent.)
     agent_runner_src = project_root / "container" / "agent-runner" / "src"
     group_agent_runner_dir = DATA_DIR / "sessions" / group.folder / "agent-runner-src"
-    if not group_agent_runner_dir.exists() and agent_runner_src.exists():
-        shutil.copytree(agent_runner_src, group_agent_runner_dir)
-    mounts.append(
-        VolumeMount(
-            hostPath=str(group_agent_runner_dir),
-            containerPath="/app/src",
-            readonly=False,
+    if agent_runner_src.exists():
+        if not group_agent_runner_dir.exists():
+            shutil.copytree(agent_runner_src, group_agent_runner_dir)
+        mounts.append(
+            VolumeMount(
+                hostPath=str(group_agent_runner_dir),
+                containerPath="/app/src",
+                readonly=False,
+            )
         )
-    )
 
     # Additional validated mounts from group config
     if group.containerConfig and group.containerConfig.additionalMounts:
